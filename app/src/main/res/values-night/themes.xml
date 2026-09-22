@@ -1,0 +1,6 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Basis-Theme (dunkel); Compose übernimmt das visuelle Theming. -->
+    <style name="Theme.Bnki" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/purple_700</item>
+    </style>
+</resources>
