@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.markwon.ext.latex)
     implementation(libs.markwon.inline.parser)
     implementation(libs.jlatexmath.android)
+    implementation(libs.coil.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

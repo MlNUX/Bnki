@@ -40,6 +40,9 @@ data class Card(
     val back: String,
     val hint: String = "",
     val tags: String = "",
+    /** Optionale Bilder (Dateinamen im App-Speicher), leer = keins. */
+    val frontImage: String = "",
+    val backImage: String = "",
     // SM-2-Zustand
     val intervalDays: Int = 0,
     val easiness: Double = 2.5,

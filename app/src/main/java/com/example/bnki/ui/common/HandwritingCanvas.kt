@@ -39,6 +39,7 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.unit.dp
+import kotlin.math.floor
 
 /** Ein Strich = Liste von Punkten (in Canvas-/Inhaltskoordinaten). */
 typealias StrokePoints = SnapshotStateList<Offset>
@@ -87,8 +88,10 @@ fun HandwritingCanvas(
     modifier: Modifier = Modifier,
     strokeColor: Color = Color(0xFF1565C0),
     strokeWidth: Float = 6f,
+    grid: Boolean = false,
     debug: Boolean = false,
 ) {
+    val gridColor = Color(0x33888888)
   Box(modifier) {
     var debugInfo by remember { mutableStateOf("Diagnose: Stift bewegen…") }
 
@@ -128,6 +131,25 @@ fun HandwritingCanvas(
             translate(state.offset.x, state.offset.y)
             scale(state.scale, state.scale, pivot = Offset.Zero)
         }) {
+            if (grid) {
+                val step = 24.dp.toPx()
+                // Sichtbarer Bereich in Inhaltskoordinaten.
+                val left = -state.offset.x / state.scale
+                val top = -state.offset.y / state.scale
+                val right = (size.width - state.offset.x) / state.scale
+                val bottom = (size.height - state.offset.y) / state.scale
+                val lineW = 1f / state.scale // bleibt am Bildschirm ~1px dünn
+                var x = floor(left / step) * step
+                while (x <= right) {
+                    drawLine(gridColor, Offset(x, top), Offset(x, bottom), lineW)
+                    x += step
+                }
+                var y = floor(top / step) * step
+                while (y <= bottom) {
+                    drawLine(gridColor, Offset(left, y), Offset(right, y), lineW)
+                    y += step
+                }
+            }
             for (points in state.strokes) {
                 if (points.size == 1) {
                     drawCircle(strokeColor, radius = strokeWidth / 2f, center = points.first())

@@ -10,12 +10,14 @@ import com.example.bnki.ui.card.CardEditScreen
 import com.example.bnki.ui.deck.DeckDetailScreen
 import com.example.bnki.ui.deck.DeckListScreen
 import com.example.bnki.ui.deck.DeckSettingsScreen
+import com.example.bnki.ui.settings.SettingsScreen
 import com.example.bnki.ui.stats.StatsScreen
 import com.example.bnki.ui.study.StudyScreen
 
 object Routes {
     const val DECKS = "decks"
     const val STATS = "stats"
+    const val SETTINGS = "settings"
     fun deck(id: Long) = "deck/$id"
     fun study(id: Long) = "study/$id"
     fun card(deckId: Long, cardId: Long) = "card/$deckId/$cardId"
@@ -32,6 +34,7 @@ fun BnkiNavHost() {
                 onOpenDeck = { nav.navigate(Routes.deck(it)) },
                 onOpenStats = { nav.navigate(Routes.STATS) },
                 onStudyAll = { nav.navigate(Routes.study(0L)) },
+                onOpenSettings = { nav.navigate(Routes.SETTINGS) },
             )
         }
 
@@ -88,6 +91,10 @@ fun BnkiNavHost() {
 
         composable(Routes.STATS) {
             StatsScreen(onBack = { nav.popBackStack() })
+        }
+
+        composable(Routes.SETTINGS) {
+            SettingsScreen(onBack = { nav.popBackStack() })
         }
     }
 }

@@ -63,6 +63,13 @@ class BnkiRepository(
     suspend fun buildStudyQueueAllDecks(now: Long = System.currentTimeMillis()): List<Card> =
         deckDao.getAll().flatMap { deck -> buildStudyQueue(deck.id, now) }
 
+    /**
+     * Dev-Modus: alle Karten (eines Decks, oder deckId==0 = alle Decks),
+     * unabhängig von Fälligkeit und Tageslimit – zum Testen der Abfrage.
+     */
+    suspend fun buildTestQueue(deckId: Long): List<Card> =
+        if (deckId == 0L) cardDao.getAll() else cardDao.getByDeck(deckId)
+
     /** Wendet eine Bewertung an, speichert die Karte und protokolliert sie. */
     suspend fun recordReview(card: Card, quality: Int, now: Long = System.currentTimeMillis()) {
         val wasNew = card.repetitions == 0

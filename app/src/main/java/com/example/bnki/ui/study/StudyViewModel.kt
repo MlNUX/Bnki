@@ -3,6 +3,7 @@ package com.example.bnki.ui.study
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.bnki.data.AppSettings
 import com.example.bnki.data.BnkiRepository
 import com.example.bnki.data.Card
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,17 +24,25 @@ data class StudyState(
 
 class StudyViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = BnkiRepository.from(app)
+    private val settings = AppSettings.get(app)
     private var deckId: Long = 0
 
     val state = MutableStateFlow(StudyState())
 
+    val canvasGrid = settings.canvasGrid
+
     fun load(deckId: Long) {
         this.deckId = deckId
         viewModelScope.launch {
-            // deckId == 0 => über alle Stapel hinweg lernen (Startseiten-Button).
-            val queue = if (deckId == 0L) repo.buildStudyQueueAllDecks()
-            else repo.buildStudyQueue(deckId)
-            state.value = StudyState(loading = false, queue = queue)
+            val queue = when {
+                // Dev-Modus: immer alle Karten abfragen (ohne Fälligkeit/Limit).
+                settings.devMode.value -> repo.buildTestQueue(deckId)
+                // deckId == 0 => über alle Stapel hinweg lernen (Startseiten-Button).
+                deckId == 0L -> repo.buildStudyQueueAllDecks()
+                else -> repo.buildStudyQueue(deckId)
+            }
+            // Reihenfolge mischen, damit die Abfrage nicht immer gleich läuft.
+            state.value = StudyState(loading = false, queue = queue.shuffled())
         }
     }
 
@@ -47,7 +56,9 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
         val s = state.value
         val card = s.current ?: return
         viewModelScope.launch {
-            repo.recordReview(card, quality)
+            // Dev-Modus: nur durchblättern, keine echte Bewertung speichern
+            // (verfälscht sonst Fälligkeit & Statistik).
+            if (!settings.devMode.value) repo.recordReview(card, quality)
             state.value = s.copy(
                 index = s.index + 1,
                 revealed = false,

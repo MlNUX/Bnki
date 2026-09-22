@@ -81,6 +81,9 @@ interface CardDao {
     @Query("SELECT * FROM cards WHERE deckId = :deckId")
     suspend fun getByDeck(deckId: Long): List<Card>
 
+    @Query("SELECT * FROM cards ORDER BY deckId, createdAt")
+    suspend fun getAll(): List<Card>
+
     /** Fällige, bereits gelernte Karten (repetitions > 0), älteste zuerst. */
     @Query(
         """

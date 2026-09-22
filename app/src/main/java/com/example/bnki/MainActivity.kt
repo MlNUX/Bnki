@@ -8,7 +8,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.bnki.data.AppSettings
+import com.example.bnki.data.ThemeMode
 import com.example.bnki.reminder.ReminderWorker
 import com.example.bnki.ui.BnkiNavHost
 import com.example.bnki.ui.theme.BnkiTheme
@@ -32,7 +37,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            BnkiTheme {
+            val themeMode by AppSettings.get(applicationContext).themeMode
+                .collectAsStateWithLifecycle()
+            val darkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+
+            BnkiTheme(darkTheme = darkTheme) {
                 BnkiNavHost()
             }
         }

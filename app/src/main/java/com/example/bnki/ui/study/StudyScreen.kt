@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -16,12 +17,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,6 +52,7 @@ fun StudyScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     val handwriting = rememberHandwritingState()
     var showHint by remember { mutableStateOf(false) }
+    val canvasGrid by vm.canvasGrid.collectAsStateWithLifecycle()
 
     // Bei Kartenwechsel: Zeichenfläche und Hinweis zurücksetzen.
     LaunchedEffect(state.index) {
@@ -66,6 +68,20 @@ fun StudyScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück")
+                    }
+                },
+                actions = {
+                    val hasHint = state.current?.hint?.isNotBlank() == true
+                    IconButton(
+                        onClick = { showHint = !showHint },
+                        enabled = hasHint,
+                    ) {
+                        Icon(
+                            Icons.Outlined.Lightbulb,
+                            contentDescription = "Tipp anzeigen",
+                            tint = if (showHint && hasHint) MaterialTheme.colorScheme.tertiary
+                            else LocalContentColor.current,
+                        )
                     }
                 },
             )
@@ -85,16 +101,12 @@ fun StudyScreen(
                         // Frage
                         LatexText(card.front, fontSize = MaterialTheme.typography.headlineSmall.fontSize)
 
-                        if (card.hint.isNotBlank()) {
-                            if (showHint) {
-                                LatexText(
-                                    "💡 ${card.hint}",
-                                    color = MaterialTheme.colorScheme.tertiary,
-                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                )
-                            } else {
-                                TextButton(onClick = { showHint = true }) { Text("Tipp anzeigen") }
-                            }
+                        if (card.hint.isNotBlank() && showHint) {
+                            LatexText(
+                                "💡 ${card.hint}",
+                                color = MaterialTheme.colorScheme.tertiary,
+                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                            )
                         }
 
                         HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -107,6 +119,7 @@ fun StudyScreen(
                             )
                             HandwritingCanvas(
                                 state = handwriting,
+                                grid = canvasGrid,
                                 modifier = Modifier.fillMaxWidth().weight(1f).padding(vertical = 8.dp),
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
