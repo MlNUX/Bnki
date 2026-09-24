@@ -38,17 +38,17 @@ class DeckSettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun onNew(v: String) { state.value = state.value.copy(newCardsPerDay = v.filter { it.isDigit() }) }
     fun onReviews(v: String) { state.value = state.value.copy(maxReviewsPerDay = v.filter { it.isDigit() }) }
 
-    fun save(onDone: () -> Unit) = viewModelScope.launch {
+    fun save(onDone: (Boolean) -> Unit) = viewModelScope.launch {
         val d = deck ?: return@launch
         val s = state.value
-        repo.upsertDeck(
+        val saved = repo.upsertDeck(
             d.copy(
                 name = s.name.trim().ifEmpty { d.name },
                 newCardsPerDay = s.newCardsPerDay.toIntOrNull() ?: d.newCardsPerDay,
                 maxReviewsPerDay = s.maxReviewsPerDay.toIntOrNull() ?: d.maxReviewsPerDay,
             )
-        )
-        onDone()
+        ) != 0L
+        onDone(saved)
     }
 
     fun deleteDeck(onDone: () -> Unit) = viewModelScope.launch {

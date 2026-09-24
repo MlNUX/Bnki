@@ -97,7 +97,7 @@ fun CardEditScreen(
                 )
             } else {
                 Text(
-                    "Tipp: Formeln in \$...\$ schreiben, z. B. \$x^2 + 1\$",
+                    "Tipp: Formeln in \$...\$ (z. B. \$x^2 + 1\$), Code in ```...``` schreiben.",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -106,18 +106,21 @@ fun CardEditScreen(
                     onValueChange = vm::onFront,
                     label = { Text("Vorderseite (Frage)") },
                     modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
                 )
                 OutlinedTextField(
                     value = state.back,
                     onValueChange = vm::onBack,
                     label = { Text("Rückseite (Antwort)") },
                     modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
                 )
                 OutlinedTextField(
                     value = state.hint,
                     onValueChange = vm::onHint,
                     label = { Text("Hinweis / Tipp (optional)") },
                     modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
                 )
                 OutlinedTextField(
                     value = state.tags,

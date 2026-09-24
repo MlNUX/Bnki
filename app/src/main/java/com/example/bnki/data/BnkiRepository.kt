@@ -15,24 +15,70 @@ class BnkiRepository(
     private val studyLogDao: StudyLogDao,
 ) {
     // --- Decks ---
-    fun observeDecksWithCounts(now: Long = System.currentTimeMillis()): Flow<List<DeckWithCounts>> =
-        deckDao.observeWithCounts(now).map { rows -> rows.map { it.toDeckWithCounts() } }
+    /** Beobachtet die unmittelbaren Unterstapel eines Elternstapels. */
+    fun observeDecksWithCounts(
+        parentId: Long? = null,
+        now: Long = System.currentTimeMillis(),
+    ): Flow<List<DeckWithCounts>> =
+        deckDao.observeWithCounts(parentId, now).map { rows -> rows.map { it.toDeckWithCounts() } }
 
     fun observeTotalDue(now: Long = System.currentTimeMillis()): Flow<Int> =
         deckDao.observeTotalDue(now)
 
+    fun observeTotalCards(): Flow<Int> = cardDao.observeTotalCount()
+
     suspend fun getDeck(id: Long): Deck? = deckDao.getById(id)
-    suspend fun upsertDeck(deck: Deck): Long =
-        if (deck.id == 0L) deckDao.insert(deck) else { deckDao.update(deck); deck.id }
-    suspend fun deleteDeck(deck: Deck) = deckDao.delete(deck)
+    fun observeDeck(id: Long): Flow<Deck?> = deckDao.observeById(id)
+    /** Gibt 0 zurück, wenn auf derselben Ebene bereits ein gleichnamiger Stapel existiert. */
+    suspend fun upsertDeck(deck: Deck): Long {
+        if (deckDao.hasSiblingWithName(deck.parentId, deck.name, deck.id)) return 0L
+        return if (deck.id == 0L) deckDao.insert(deck) else { deckDao.update(deck); deck.id }
+    }
+
+    /** Erstellt einen Unterstapel nur in einem leeren Stapel oder Ordnerstapel. */
+    suspend fun createSubDeck(parentId: Long, name: String): Boolean {
+        val parent = deckDao.getById(parentId) ?: return false
+        if (parent.type() == DeckContentType.CARDS) return false
+        if (deckDao.hasSiblingWithName(parentId, name, 0L)) return false
+        if (parent.type() == DeckContentType.EMPTY) {
+            deckDao.update(parent.copy(contentType = DeckContentType.SUBDECKS.name))
+        }
+        deckDao.insert(Deck(name = name, parentId = parentId))
+        return true
+    }
+
+    /** Löscht einen Stapel mitsamt allen Unterstapeln und aktualisiert den Elternstapel. */
+    suspend fun deleteDeck(deck: Deck) {
+        val actual = deckDao.getById(deck.id) ?: return
+        deleteDeckTree(actual)
+        actual.parentId?.let { refreshDeckContent(it) }
+    }
 
     // --- Cards ---
     fun observeCards(deckId: Long): Flow<List<Card>> = cardDao.observeByDeck(deckId)
     suspend fun getCards(deckId: Long): List<Card> = cardDao.getByDeck(deckId)
     suspend fun getCard(id: Long): Card? = cardDao.getById(id)
-    suspend fun upsertCard(card: Card): Long =
-        if (card.id == 0L) cardDao.insert(card) else { cardDao.update(card); card.id }
-    suspend fun deleteCard(card: Card) = cardDao.delete(card)
+    /**
+     * Neue Karten sind nur in leeren Stapeln oder Kartenstapeln erlaubt.
+     * Bei Erfolg wird ein leerer Stapel zum Kartenstapel.
+     */
+    suspend fun upsertCard(card: Card): Long {
+        if (card.id != 0L) {
+            cardDao.update(card)
+            return card.id
+        }
+        val deck = deckDao.getById(card.deckId) ?: return 0L
+        if (deck.type() == DeckContentType.SUBDECKS) return 0L
+        if (deck.type() == DeckContentType.EMPTY) {
+            deckDao.update(deck.copy(contentType = DeckContentType.CARDS.name))
+        }
+        return cardDao.insert(card)
+    }
+
+    suspend fun deleteCard(card: Card) {
+        cardDao.delete(card)
+        refreshDeckContent(card.deckId)
+    }
 
     // --- Lernen ---
 
@@ -42,6 +88,12 @@ class BnkiRepository(
      */
     suspend fun buildStudyQueue(deckId: Long, now: Long = System.currentTimeMillis()): List<Card> {
         val deck = deckDao.getById(deckId) ?: return emptyList()
+        // Ordnerstapel lernen rekursiv alle enthaltenen Kartenstapel. Jedes
+        // Blatt behält dabei sein eigenes Tageslimit und seine Fälligkeiten.
+        val children = deckDao.getChildren(deckId)
+        if (children.isNotEmpty()) {
+            return children.flatMap { child -> buildStudyQueue(child.id, now) }
+        }
         val since = startOfDay(now)
 
         val reviewsDone = studyLogDao.countReviewsSince(deckId, since)
@@ -68,7 +120,7 @@ class BnkiRepository(
      * unabhängig von Fälligkeit und Tageslimit – zum Testen der Abfrage.
      */
     suspend fun buildTestQueue(deckId: Long): List<Card> =
-        if (deckId == 0L) cardDao.getAll() else cardDao.getByDeck(deckId)
+        if (deckId == 0L) cardDao.getAll() else getCardsInTree(deckId)
 
     /** Wendet eine Bewertung an, speichert die Karte und protokolliert sie. */
     suspend fun recordReview(card: Card, quality: Int, now: Long = System.currentTimeMillis()) {
@@ -94,16 +146,43 @@ class BnkiRepository(
     /** Importiert CSV-Zeilen als neue Karten in ein Deck. Gibt die Anzahl zurück. */
     suspend fun importCsv(deckId: Long, csv: String): Int {
         val rows = CsvIo.parse(csv).filter { it.front.isNotBlank() && it.back.isNotBlank() }
+        var imported = 0
         for (r in rows) {
-            cardDao.insert(
-                Card(deckId = deckId, front = r.front, back = r.back, hint = r.hint, tags = r.tags)
-            )
+            if (upsertCard(Card(deckId = deckId, front = r.front, back = r.back, hint = r.hint, tags = r.tags)) != 0L) {
+                imported++
+            }
         }
-        return rows.size
+        return imported
     }
 
     // --- Statistik ---
     fun observeLogsSince(since: Long): Flow<List<StudyLog>> = studyLogDao.observeSince(since)
+
+    private suspend fun deleteDeckTree(deck: Deck) {
+        deckDao.getChildren(deck.id).forEach { deleteDeckTree(it) }
+        deckDao.delete(deck)
+    }
+
+    /** Setzt den Typ anhand des tatsächlichen Inhalts zurück bzw. wiederher. */
+    private suspend fun refreshDeckContent(deckId: Long) {
+        val deck = deckDao.getById(deckId) ?: return
+        val type = when {
+            deckDao.getChildren(deckId).isNotEmpty() -> DeckContentType.SUBDECKS
+            cardDao.countByDeck(deckId) > 0 -> DeckContentType.CARDS
+            else -> DeckContentType.EMPTY
+        }
+        if (deck.contentType != type.name) deckDao.update(deck.copy(contentType = type.name))
+    }
+
+    private fun Deck.type(): DeckContentType =
+        runCatching { DeckContentType.valueOf(contentType) }.getOrDefault(DeckContentType.EMPTY)
+
+    /** Liefert alle Karten eines Stapels und aller verschachtelten Unterstapel. */
+    private suspend fun getCardsInTree(deckId: Long): List<Card> {
+        val children = deckDao.getChildren(deckId)
+        return if (children.isEmpty()) cardDao.getByDeck(deckId)
+        else children.flatMap { child -> getCardsInTree(child.id) }
+    }
 
     companion object {
         fun startOfDay(now: Long): Long {

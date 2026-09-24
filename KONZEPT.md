@@ -98,6 +98,20 @@ Die Lösung der Gleichung $ax^2 + bx + c = 0$ ist $$x = \frac{-b \pm \sqrt{b^2-4
 - **Live-Vorschau** (optional, Ausbau): im Editor eine Vorschau der gerenderten
   Karte anzeigen
 
+### Codeblöcke
+
+Die Felder **Vorderseite, Rückseite und Hinweis** unterstützen außerdem
+Markdown-Codeblöcke. Code wird in drei Backticks eingeschlossen; eine optionale
+Sprache steht direkt hinter dem öffnenden Fence. Die Anzeige nutzt eine
+Monospace-Schrift, einen abgesetzten Hintergrund, horizontalen Scroll bei langen
+Zeilen und erlaubt das Kopieren des Codes.
+
+```text
+```kotlin
+val answer = 42
+```
+```
+
 ### Handschriftliche Antwort (Stift-Eingabe)
 
 Im Abfrage-Modus kann die Antwort **handschriftlich mit dem Stylus** geschrieben

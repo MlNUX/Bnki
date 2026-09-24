@@ -5,11 +5,17 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-/** Ein Karteikarten-Stapel. */
-@Entity(tableName = "decks")
+/** Ein Stapel ist leer, enthält Karten oder dient als Ordner für Unterstapel. */
+enum class DeckContentType { EMPTY, CARDS, SUBDECKS }
+
+@Entity(tableName = "decks", indices = [Index("parentId")])
 data class Deck(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
+    /** `null` bedeutet, dass der Stapel auf der obersten Ebene liegt. */
+    val parentId: Long? = null,
+    /** Persistiert als String, um eine zusätzliche Room-Typkonvertierung zu vermeiden. */
+    val contentType: String = DeckContentType.EMPTY.name,
     val createdAt: Long = System.currentTimeMillis(),
     /** Tägliches Limit an neuen Karten. */
     val newCardsPerDay: Int = 20,
@@ -18,7 +24,8 @@ data class Deck(
 )
 
 /**
- * Eine Karteikarte. front/back/hint dürfen Text mit LaTeX ($...$) enthalten.
+ * Eine Karteikarte. front/back/hint dürfen Text mit LaTeX ($...$) und
+ * Markdown-Codeblöcken (```...```) enthalten.
  * Die SM-2-Felder steuern die Wiederholung.
  */
 @Entity(
@@ -73,4 +80,5 @@ data class DeckWithCounts(
     val deck: Deck,
     val totalCards: Int,
     val dueCards: Int,
+    val subDeckCount: Int,
 )

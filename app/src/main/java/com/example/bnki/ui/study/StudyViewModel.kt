@@ -30,6 +30,7 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
     val state = MutableStateFlow(StudyState())
 
     val canvasGrid = settings.canvasGrid
+    val answerInputMode = settings.answerInputMode
 
     fun load(deckId: Long) {
         this.deckId = deckId

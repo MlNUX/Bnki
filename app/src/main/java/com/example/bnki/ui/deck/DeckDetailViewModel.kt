@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.bnki.data.BnkiRepository
 import com.example.bnki.data.Card
 import com.example.bnki.data.Deck
+import com.example.bnki.data.DeckWithCounts
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,16 +19,28 @@ class DeckDetailViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = BnkiRepository.from(app)
     private val deckId = MutableStateFlow(0L)
 
-    val deck = MutableStateFlow<Deck?>(null)
+    @Suppress("OPT_IN_USAGE")
+    val deck: StateFlow<Deck?> = deckId.flatMapLatest { id -> repo.observeDeck(id) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     @Suppress("OPT_IN_USAGE")
     val cards: StateFlow<List<Card>> =
         deckId.flatMapLatest { id -> repo.observeCards(id) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    @Suppress("OPT_IN_USAGE")
+    val subDecks: StateFlow<List<DeckWithCounts>> =
+        deckId.flatMapLatest { id -> repo.observeDecksWithCounts(parentId = id) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun load(id: Long) {
         deckId.value = id
-        viewModelScope.launch { deck.value = repo.getDeck(id) }
+    }
+
+    fun addSubDeck(name: String, onDone: (Boolean) -> Unit) = viewModelScope.launch {
+        val trimmed = name.trim()
+        val created = trimmed.isNotEmpty() && repo.createSubDeck(deckId.value, trimmed)
+        onDone(created)
     }
 
     fun deleteCard(card: Card) = viewModelScope.launch { repo.deleteCard(card) }

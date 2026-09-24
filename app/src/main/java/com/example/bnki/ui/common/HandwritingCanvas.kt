@@ -90,14 +90,17 @@ fun HandwritingCanvas(
     strokeWidth: Float = 6f,
     grid: Boolean = false,
     debug: Boolean = false,
+    /** Zeigt vorhandene Striche an, ohne sie verändern zu können. */
+    readOnly: Boolean = false,
 ) {
     val gridColor = Color(0x33888888)
   Box(modifier) {
     var debugInfo by remember { mutableStateOf("Diagnose: Stift bewegen…") }
 
-    Canvas(
-        modifier = Modifier
-            .matchParentSize()
+    val inputModifier = if (readOnly) {
+        Modifier
+    } else {
+        Modifier
             .pointerHoverIcon(PointerIcon.Crosshair)
             .pointerInteropFilter { me ->
                 // Button-Zustand direkt aus dem rohen MotionEvent lesen –
@@ -111,8 +114,6 @@ fun HandwritingCanvas(
                 }
                 false // nicht konsumieren – Zeichnen läuft weiter
             }
-            .border(1.dp, Color.LightGray)
-            .clipToBounds()
             .pointerInput(strokeWidth) {
                 val eraseRadius = strokeWidth * 4f
                 awaitEachGesture {
@@ -125,7 +126,15 @@ fun HandwritingCanvas(
                         handlePanZoom(state, down)
                     }
                 }
-            },
+            }
+    }
+
+    Canvas(
+        modifier = Modifier
+            .matchParentSize()
+            .border(1.dp, Color.LightGray)
+            .clipToBounds()
+            .then(inputModifier),
     ) {
         withTransform({
             translate(state.offset.x, state.offset.y)

@@ -46,6 +46,7 @@ fun BnkiNavHost() {
             DeckDetailScreen(
                 deckId = deckId,
                 onBack = { nav.popBackStack() },
+                onOpenDeck = { nav.navigate(Routes.deck(it)) },
                 onStudy = { nav.navigate(Routes.study(it)) },
                 onAddCard = { nav.navigate(Routes.card(it, 0L)) },
                 onEditCard = { d, c -> nav.navigate(Routes.card(d, c)) },

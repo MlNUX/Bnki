@@ -19,11 +19,17 @@ class DeckListViewModel(app: Application) : AndroidViewModel(app) {
         repo.observeDecksWithCounts()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val totalDue: StateFlow<Int> = repo.observeTotalDue()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val totalCards: StateFlow<Int> = repo.observeTotalCards()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     val devMode: StateFlow<Boolean> = AppSettings.get(app).devMode
 
-    fun addDeck(name: String) = viewModelScope.launch {
+    fun addDeck(name: String, onDone: (Boolean) -> Unit) = viewModelScope.launch {
         val trimmed = name.trim()
-        if (trimmed.isNotEmpty()) repo.upsertDeck(Deck(name = trimmed))
+        val created = trimmed.isNotEmpty() && repo.upsertDeck(Deck(name = trimmed)) != 0L
+        onDone(created)
     }
 
     fun deleteDeck(deck: Deck) = viewModelScope.launch {

@@ -22,23 +22,42 @@ interface DeckDao {
     @Query("SELECT * FROM decks WHERE id = :id")
     suspend fun getById(id: Long): Deck?
 
+    @Query("SELECT * FROM decks WHERE id = :id")
+    fun observeById(id: Long): Flow<Deck?>
+
     @Query("SELECT * FROM decks ORDER BY name COLLATE NOCASE")
     fun observeAll(): Flow<List<Deck>>
 
     @Query("SELECT * FROM decks ORDER BY name COLLATE NOCASE")
     suspend fun getAll(): List<Deck>
 
+    @Query("SELECT * FROM decks WHERE parentId = :parentId ORDER BY name COLLATE NOCASE")
+    suspend fun getChildren(parentId: Long): List<Deck>
+
+    /** Namen müssen unter demselben Elternstapel eindeutig sein (ohne Groß-/Kleinschreibung). */
+    @Query(
+        """
+        SELECT COUNT(*) > 0 FROM decks
+        WHERE parentId IS :parentId
+          AND name = :name COLLATE NOCASE
+          AND id != :excludedId
+        """
+    )
+    suspend fun hasSiblingWithName(parentId: Long?, name: String, excludedId: Long): Boolean
+
     /** Decks mit Gesamt- und Fälligkeitszahl für die Übersicht. */
     @Query(
         """
         SELECT d.*,
             (SELECT COUNT(*) FROM cards c WHERE c.deckId = d.id) AS totalCards,
-            (SELECT COUNT(*) FROM cards c WHERE c.deckId = d.id AND c.dueDate <= :now) AS dueCards
+            (SELECT COUNT(*) FROM cards c WHERE c.deckId = d.id AND c.dueDate <= :now) AS dueCards,
+            (SELECT COUNT(*) FROM decks child WHERE child.parentId = d.id) AS subDeckCount
         FROM decks d
+        WHERE d.parentId IS :parentId
         ORDER BY d.name COLLATE NOCASE
         """
     )
-    fun observeWithCounts(now: Long): Flow<List<DeckCountsRow>>
+    fun observeWithCounts(parentId: Long?, now: Long): Flow<List<DeckCountsRow>>
 
     @Query("SELECT COUNT(*) FROM cards WHERE dueDate <= :now")
     fun observeTotalDue(now: Long): Flow<Int>
@@ -48,16 +67,28 @@ interface DeckDao {
 data class DeckCountsRow(
     val id: Long,
     val name: String,
+    val parentId: Long?,
+    val contentType: String,
     val createdAt: Long,
     val newCardsPerDay: Int,
     val maxReviewsPerDay: Int,
     val totalCards: Int,
     val dueCards: Int,
+    val subDeckCount: Int,
 ) {
     fun toDeckWithCounts() = DeckWithCounts(
-        deck = Deck(id, name, createdAt, newCardsPerDay, maxReviewsPerDay),
+        deck = Deck(
+            id = id,
+            name = name,
+            parentId = parentId,
+            contentType = contentType,
+            createdAt = createdAt,
+            newCardsPerDay = newCardsPerDay,
+            maxReviewsPerDay = maxReviewsPerDay,
+        ),
         totalCards = totalCards,
         dueCards = dueCards,
+        subDeckCount = subDeckCount,
     )
 }
 
@@ -83,6 +114,12 @@ interface CardDao {
 
     @Query("SELECT * FROM cards ORDER BY deckId, createdAt")
     suspend fun getAll(): List<Card>
+
+    @Query("SELECT COUNT(*) FROM cards WHERE deckId = :deckId")
+    suspend fun countByDeck(deckId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM cards")
+    fun observeTotalCount(): Flow<Int>
 
     /** Fällige, bereits gelernte Karten (repetitions > 0), älteste zuerst. */
     @Query(

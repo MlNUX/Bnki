@@ -8,13 +8,13 @@ import java.util.concurrent.TimeUnit
  *
  * quality: 0..5 (Selbstbewertung). < 3 = falsch/nicht gewusst.
  * Mapping der 3 UI-Buttons:
- *   Nochmal -> 2, Gut -> 4, Leicht -> 5
+ *   Nochmal -> 2, Sicher -> 4, Sehr sicher -> 5
  * Leere Handschrift-Antwort -> 0 (automatisch falsch).
  */
 object Sm2 {
     const val QUALITY_AGAIN = 2 // "Nochmal"
-    const val QUALITY_GOOD = 4  // "Gut"
-    const val QUALITY_EASY = 5  // "Leicht"
+    const val QUALITY_GOOD = 4  // "Sicher"
+    const val QUALITY_EASY = 5  // "Sehr sicher"
     const val QUALITY_BLANK = 0 // leere Antwort
 
     const val MIN_EASINESS = 1.3

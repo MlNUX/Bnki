@@ -73,7 +73,12 @@ fun DeckSettingsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { vm.save(onBack) }) {
+                    IconButton(onClick = {
+                        vm.save { saved ->
+                            if (saved) onBack()
+                            else Toast.makeText(context, "Ein Stapel mit diesem Namen existiert bereits.", Toast.LENGTH_SHORT).show()
+                        }
+                    }) {
                         Icon(Icons.Default.Check, contentDescription = "Speichern")
                     }
                 },

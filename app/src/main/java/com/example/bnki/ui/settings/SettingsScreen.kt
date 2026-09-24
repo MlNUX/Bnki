@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.bnki.data.AnswerInputMode
 import com.example.bnki.data.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,6 +40,7 @@ fun SettingsScreen(
     val mode by vm.themeMode.collectAsStateWithLifecycle()
     val devMode by vm.devMode.collectAsStateWithLifecycle()
     val canvasGrid by vm.canvasGrid.collectAsStateWithLifecycle()
+    val answerInputMode by vm.answerInputMode.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -54,7 +58,8 @@ fun SettingsScreen(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .verticalScroll(rememberScrollState()),
         ) {
             Text(
                 "Erscheinungsbild",
@@ -71,6 +76,30 @@ fun SettingsScreen(
             ThemeOption("Dunkel", "Immer dunkles Design", mode == ThemeMode.DARK) {
                 vm.setThemeMode(ThemeMode.DARK)
             }
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+            Text(
+                "Antwort eingeben",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(vertical = 8.dp),
+            )
+            ThemeOption(
+                "Mit Stift schreiben",
+                "Antworten auf der Zeichenfläche handschriftlich eingeben.",
+                answerInputMode == AnswerInputMode.STYLUS,
+            ) { vm.setAnswerInputMode(AnswerInputMode.STYLUS) }
+            ThemeOption(
+                "Eintippen",
+                "Antworten als Text über die Tastatur eingeben.",
+                answerInputMode == AnswerInputMode.TYPING,
+            ) { vm.setAnswerInputMode(AnswerInputMode.TYPING) }
+            ThemeOption(
+                "Beim Lernen wechseln",
+                "In der Lernansicht direkt zwischen Stift und Tastatur wechseln.",
+                answerInputMode == AnswerInputMode.SWITCH,
+            ) { vm.setAnswerInputMode(AnswerInputMode.SWITCH) }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 

@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Deck::class, Card::class, StudyLog::class],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class BnkiDatabase : RoomDatabase() {
@@ -28,13 +28,26 @@ abstract class BnkiDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE decks ADD COLUMN parentId INTEGER")
+                db.execSQL("ALTER TABLE decks ADD COLUMN contentType TEXT NOT NULL DEFAULT 'EMPTY'")
+                // Alle bisherigen Stapel enthalten ausschließlich Karten.
+                db.execSQL(
+                    "UPDATE decks SET contentType = 'CARDS' " +
+                        "WHERE id IN (SELECT DISTINCT deckId FROM cards)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_decks_parentId ON decks(parentId)")
+            }
+        }
+
         fun get(context: Context): BnkiDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     BnkiDatabase::class.java,
                     "bnki.db",
-                ).addMigrations(MIGRATION_1_2).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
             }
     }
 }

@@ -1,0 +1,42 @@
+front;back;hint;tags
+"Was gibt dieser Kotlin-Code aus?
+```kotlin
+val a = 6
+val b = 7
+println(a * b)
+```";"42";"Der Operator `*` multipliziert zwei Zahlen.
+```kotlin
+println(6 * 7)
+```";"code,kotlin,grundlagen"
+"Schreibe eine Kotlin-Funktion, die prüft, ob eine Zahl gerade ist.";"```kotlin
+fun isEven(number: Int): Boolean = number % 2 == 0
+```";"Der Rest einer geraden Zahl bei Division durch 2 ist 0.";"code,kotlin,funktionen"
+"Was bewirkt die Einrückung in diesem Python-Beispiel?
+```python
+if temperature < 0:
+    print(""Frost"")
+```";"Die eingerückte Zeile gehört zum `if`-Block und wird nur bei einer Temperatur unter 0 ausgeführt.";"Python verwendet Einrückung statt geschweifter Klammern für Blöcke.";"code,python,syntax"
+"Schreibe eine SQL-Abfrage, die alle Namen aus der Tabelle `users` nach Namen sortiert zurückgibt.";"```sql
+SELECT name
+FROM users
+ORDER BY name ASC;
+```";"Benötigt werden `SELECT`, `FROM` und `ORDER BY`.";"code,sql,datenbank"
+"Was gibt der folgende JavaScript-Code aus?
+```javascript
+const values = [1, 2, 3];
+console.log(values.map(value => value * 2));
+```";"```text
+[2, 4, 6]
+```";"`map` erstellt ein neues Array, indem es die Funktion auf jedes Element anwendet.";"code,javascript,array"
+"Vervollständige den C-Code, damit `Hello, world!` ausgegeben wird.";"```c
+#include <stdio.h>
+
+int main(void) {
+    printf(""Hello, world!\n"");
+    return 0;
+}
+```";"Achte auf `#include <stdio.h>` und den Zeilenumbruch `\\n`.";"code,c,grundlagen"
+"Dieser Codeblock hat absichtlich keine Sprachangabe. Wie heißt der Rückgabewert?
+```
+return true;
+```";"Der Rückgabewert ist der boolesche Wert `true`.";"Auch sprachlose Codeblöcke sollen abgesetzt dargestellt werden.";"code,test"
